@@ -1,0 +1,711 @@
+<!doctype html>
+<html lang="de">
+<head>
+<title>Kistenmosaik</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&display=swap">
+<style>
+body{margin:0}
+/* Layout: Bedienfeld links, Bauplan rechts (am Desktop mitlaufend); mobil steht der Bauplan oben.
+   Farben: Flaschenglas-Gruen als Akzent, Pfandschild-Gelb fuer die Auswahl, kuehles Graugruen als Grund. */
+:root{
+  --bg:#e6eae3;--panel:#f6f8f3;--ink:#18211c;--muted:#56625a;--line:#cbd3c8;
+  --accent:#17613f;--accent-ink:#ffffff;--signal:#e9a912;--field:#ffffff;
+  --floor:#dde2d9;--crate:#b1b8ac;--crate-edge:#77817a;--hole:#8c9588;
+  --display:'Barlow Condensed','Arial Narrow',Arial,sans-serif;
+  --body:'Barlow',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#101512;--panel:#19211d;--ink:#e7eee9;--muted:#9aa89f;--line:#2c3831;
+    --accent:#58c793;--accent-ink:#0b1a12;--signal:#f0b323;--field:#101512;
+    --floor:#0b0f0d;--crate:#47524b;--crate-edge:#86928a;--hole:#2a322d;color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#101512;--panel:#19211d;--ink:#e7eee9;--muted:#9aa89f;--line:#2c3831;
+  --accent:#58c793;--accent-ink:#0b1a12;--signal:#f0b323;--field:#101512;
+  --floor:#0b0f0d;--crate:#47524b;--crate-edge:#86928a;--hole:#2a322d;color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{
+  background:var(--bg);color:var(--ink);font:400 15px/1.5 var(--body);
+  padding-block:24px 40px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));
+  padding-right:max(16px,env(safe-area-inset-right,0px));
+}
+.head{max-width:1280px;margin:0 auto 18px}
+h1{font:700 clamp(40px,7vw,62px)/.95 var(--display);letter-spacing:.01em;text-transform:uppercase;margin:0 0 8px;text-wrap:balance}
+.head p{margin:0;color:var(--muted);max-width:62ch}
+h2{font:600 15px/1.2 var(--display);letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin:0}
+.app{max-width:1280px;margin:0 auto;display:grid;gap:14px;grid-template-columns:minmax(0,1fr)}
+.stage{order:-1;min-width:0}
+.controls{display:grid;gap:12px;min-width:0}
+.group{display:grid;gap:14px;padding:16px;background:var(--panel);border:1px solid var(--line);border-radius:10px;min-width:0}
+.stage.group{gap:0}
+@media (min-width:900px){
+  .app{grid-template-columns:340px minmax(0,1fr);align-items:start}
+  .controls{grid-column:1;grid-row:1}
+  .stage{order:0;grid-column:2;grid-row:1;position:sticky;top:12px;max-height:calc(100vh - 24px);overflow:auto}
+}
+.field{display:grid;gap:6px;min-width:0}
+.lbl{display:flex;justify-content:space-between;gap:8px;font-weight:500;font-size:14px}
+.lbl output{font-variant-numeric:tabular-nums;color:var(--muted)}
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+input[type=number]{font:inherit;background:var(--field);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:8px 10px;width:100%;min-width:0;font-variant-numeric:tabular-nums}
+.stepper{display:grid;grid-template-columns:40px minmax(0,1fr) 40px}
+.stepper input{border-radius:0;text-align:center;font-weight:600;font-size:17px;border-inline:0}
+.stepper button{font:600 20px/1 var(--body);background:var(--field);color:var(--ink);border:1px solid var(--line);cursor:pointer}
+.stepper button:first-child{border-radius:8px 0 0 8px}
+.stepper button:last-child{border-radius:0 8px 8px 0}
+.stepper button:hover{background:var(--line)}
+.seg{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{font:inherit;font-weight:500;padding:9px 10px;background:var(--field);color:var(--ink);border:0;cursor:pointer}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+.btn{font:inherit;font-weight:500;padding:8px 12px;background:var(--field);color:var(--ink);border:1px solid var(--line);border-radius:8px;cursor:pointer;display:inline-flex;align-items:center}
+.btn:hover{background:var(--line)}
+.btn[aria-pressed="true"]{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+label.btn:has(.sr-only:focus-visible){outline:2px solid var(--accent);outline-offset:2px}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.check{display:flex;gap:10px;align-items:center;font-weight:500}
+.check input{width:18px;height:18px;accent-color:var(--accent)}
+.note{margin:0;font-size:13px;color:var(--muted)}
+button:focus-visible,input:focus-visible,canvas:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+details summary{cursor:pointer;font-weight:500;font-size:14px}
+details .pair{margin-top:10px}
+.legend{display:grid;gap:8px}
+.leg-row{display:grid;grid-template-columns:36px 44px minmax(0,1fr) auto;gap:10px;align-items:center}
+.leg-row input[type=color]{width:36px;height:28px;padding:0;border:1px solid var(--line);border-radius:6px;background:none;cursor:pointer}
+.leg-row .nr{font:600 16px var(--display);letter-spacing:.04em}
+.leg-row .bar{height:6px;border-radius:3px;background:var(--line);overflow:hidden}
+.leg-row .bar i{display:block;height:100%}
+.leg-row .cnt{font-variant-numeric:tabular-nums;font-size:14px;text-align:right}
+.stats{display:flex;flex-wrap:wrap;gap:4px 24px;align-items:baseline;margin-bottom:12px}
+.stats span{color:var(--muted);font-size:14px}
+.stats b{font:700 28px/1 var(--display);color:var(--ink);letter-spacing:.01em;margin-right:4px;font-variant-numeric:tabular-nums}
+.canvas-wrap{display:flex;justify-content:center;min-width:0}
+canvas{display:block;border-radius:6px;max-width:100%;cursor:pointer}
+canvas.grab{cursor:grab}
+canvas.grabbing{cursor:grabbing}
+.detail{margin-top:14px;padding-top:14px;border-top:1px solid var(--line);display:flex;gap:6px 18px;align-items:center;flex-wrap:wrap}
+.detail h2{margin-bottom:2px}
+.detail .name{font:700 30px/1 var(--display);color:var(--ink);letter-spacing:.02em}
+.mini{display:grid;gap:4px}
+.cap{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font:600 15px var(--display);border:1.5px solid rgba(0,0,0,.4)}
+.detail-text{min-width:0;flex:1 1 160px}
+.detail-text p{margin:2px 0 0;font-size:14px;color:var(--muted)}
+.thumb{display:flex;gap:12px;align-items:center}
+.thumb canvas{width:96px;height:auto;flex:none;border:1px solid var(--line);cursor:default}
+.err{color:#b3261e;font-size:13px;margin:0}
+:root[data-theme="dark"] .err{color:#ff8a80}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .err{color:#ff8a80}}
+</style>
+
+</head>
+<body>
+<header class="head">
+  <h1>Kistenmosaik</h1>
+  <p>Kästen zu einem Rechteck stellen, ein Bild darüberlegen und sehen, welche Flasche an welche Stelle kommt.</p>
+</header>
+
+<main class="app">
+  <section class="controls" aria-label="Einstellungen">
+    <div class="group">
+      <h2>Kästen</h2>
+      <div class="pair">
+        <div class="field">
+          <label class="lbl" for="nx">Horizontal</label>
+          <div class="stepper">
+            <button type="button" data-step="nx" data-d="-1" aria-label="Eine Kastenreihe weniger nebeneinander">−</button>
+            <input id="nx" type="number" min="1" max="26" value="7" inputmode="numeric">
+            <button type="button" data-step="nx" data-d="1" aria-label="Eine Kastenreihe mehr nebeneinander">+</button>
+          </div>
+        </div>
+        <div class="field">
+          <label class="lbl" for="ny">Vertikal</label>
+          <div class="stepper">
+            <button type="button" data-step="ny" data-d="-1" aria-label="Eine Kastenreihe weniger übereinander">−</button>
+            <input id="ny" type="number" min="1" max="26" value="7" inputmode="numeric">
+            <button type="button" data-step="ny" data-d="1" aria-label="Eine Kastenreihe mehr übereinander">+</button>
+          </div>
+        </div>
+      </div>
+      <p class="note">Anzahl Kästen nebeneinander und übereinander. Ein Kasten fasst 12 Flaschen.</p>
+      <div class="field">
+        <span class="lbl">Kasten liegt</span>
+        <div class="seg" role="group" aria-label="Ausrichtung der Kästen">
+          <button type="button" data-orient="quer" aria-pressed="true">quer (4 × 3)</button>
+          <button type="button" data-orient="hoch" aria-pressed="false">hoch (3 × 4)</button>
+        </div>
+      </div>
+      <details>
+        <summary>Kastenmaße anpassen</summary>
+        <div class="pair">
+          <div class="field"><label class="lbl" for="L">Länge (cm)</label><input id="L" type="number" min="10" max="100" value="40" inputmode="decimal"></div>
+          <div class="field"><label class="lbl" for="W">Breite (cm)</label><input id="W" type="number" min="10" max="100" value="30" inputmode="decimal"></div>
+        </div>
+      </details>
+    </div>
+
+    <div class="group">
+      <h2>Bild</h2>
+      <div class="chips">
+        <button type="button" class="btn" data-sample="kuerbis" aria-pressed="true">Grinse-Kürbis</button>
+        <button type="button" class="btn" data-sample="kuerbis2" aria-pressed="false">Böser Kürbis</button>
+        <button type="button" class="btn" data-sample="kuerbis3" aria-pressed="false">Halloween-Nacht</button>
+        <label class="btn" id="fileBtn"><input class="sr-only" id="file" type="file" accept="image/*">Eigenes Bild wählen</label>
+      </div>
+      <div class="thumb"><canvas id="thumb" width="160" height="120" role="img" aria-label="Originalbild zum Vergleich"></canvas><span class="note">Originalbild zum Vergleich. Auf dem Bauplan erscheint das Bild nur durch gleichmäßig gefärbte Kronkorken.</span></div>
+      <p class="err" id="fileErr" hidden>Das Bild ließ sich nicht öffnen. Probiere ein JPG oder PNG.</p>
+      <div class="field">
+        <span class="lbl">Bildausschnitt</span>
+        <div class="seg" role="group" aria-label="Bild einpassen">
+          <button type="button" data-fit="cover" aria-pressed="true">Füllen</button>
+          <button type="button" data-fit="contain" aria-pressed="false">Einpassen</button>
+        </div>
+      </div>
+      <div class="field"><label class="lbl" for="zoom">Größe <output id="zoomO">100 %</output></label><input id="zoom" type="range" min="40" max="300" step="5" value="100"></div>
+      <div class="field"><label class="lbl" for="px">Nach rechts schieben <output id="pxO">50</output></label><input id="px" type="range" min="0" max="100" step="1" value="50"></div>
+      <div class="field"><label class="lbl" for="py">Nach unten schieben <output id="pyO">50</output></label><input id="py" type="range" min="0" max="100" step="1" value="50"></div>
+      <div><button type="button" class="btn" id="resetImg">Bild zurücksetzen</button></div>
+    </div>
+
+    <div class="group">
+      <h2>Farben</h2>
+      <div class="field"><label class="lbl" for="k">Anzahl Farben <output id="kO">5</output></label><input id="k" type="range" min="2" max="12" step="1" value="5"></div>
+      <div class="legend" id="legend" aria-live="polite"></div>
+      <p class="note">Jede Flasche ist ein Bildpunkt. Wähle für jede Farbe eine Sorte mit passendem Kronkorken. Mit einem Klick auf ein Farbfeld lässt sich der Farbton an dein Sortiment anpassen.</p>
+    </div>
+
+    <div class="group">
+      <h2>Anzeige</h2>
+      <label class="check"><input type="checkbox" id="numbers"> Farbnummern auf den Kronkorken</label>
+      <label class="check"><input type="checkbox" id="labels" checked> Spalten und Reihen beschriften</label>
+    </div>
+  </section>
+
+  <section class="stage group" aria-label="Bauplan">
+    <div class="stats">
+      <div><b id="sCrates">49</b><span>Kästen</span></div>
+      <div><b id="sBottles">588</b><span>Flaschen</span></div>
+      <div><b id="sSize">2,80 × 2,10 m</b><span>Fläche</span></div>
+    </div>
+    <div class="canvas-wrap" id="wrap"><canvas id="cv" tabindex="0" role="img" aria-label="Bauplan der Kistenwand mit eingefärbten Flaschen. Mit den Pfeiltasten wählst du einen Kasten."></canvas></div>
+    <div class="detail">
+      <div class="detail-text">
+        <h2>Gewählter Kasten</h2>
+        <div class="name" id="dName">A1</div>
+        <p id="dInfo"></p>
+        <p>Klick auf einen Kasten zeigt, wie er bestückt wird. Mit der Maus lässt sich das Bild auf dem Raster ziehen.</p>
+      </div>
+      <div class="mini" id="mini" role="img" aria-label="Belegung des gewählten Kastens"></div>
+    </div>
+  </section>
+</main>
+
+<script>
+(function(){
+'use strict';
+var $=function(id){return document.getElementById(id)};
+var clamp=function(v,a,b){return Math.max(a,Math.min(b,v))};
+var TAU=Math.PI*2;
+
+var state={nx:7,ny:7,orient:'quer',L:40,W:30,fit:'cover',zoom:100,px:.5,py:.5,k:5,numbers:false,labels:true,sel:{x:0,y:0}};
+var src=null, model=null;
+var cv=$('cv'), ctx=cv.getContext('2d');
+var view={S:1,M:0};
+
+/* ---------- Geometrie ---------- */
+function geom(){
+  var land=state.orient==='quer';
+  var cW=land?state.L:state.W, cH=land?state.W:state.L;
+  var cols=land?4:3, rows=land?3:4;
+  return {cW:cW,cH:cH,cols:cols,rows:rows,physW:state.nx*cW,physH:state.ny*cH,
+          pw:cW/cols,ph:cH/rows,gx:state.nx*cols,gy:state.ny*rows};
+}
+function placement(physW,physH){
+  var iw=src.w, ih=src.h;
+  var base=state.fit==='cover'?Math.max(physW/iw,physH/ih):Math.min(physW/iw,physH/ih);
+  var sc=base*state.zoom/100;
+  var dw=iw*sc, dh=ih*sc;
+  return {dw:dw,dh:dh,x:physW/2-(1-state.px)*dw,y:physH/2-(1-state.py)*dh};
+}
+
+/* ---------- Beispielbilder ---------- */
+function drawPumpkin(x,cx,cy,rx,ry){
+  x.fillStyle='#ff8a00'; x.beginPath(); x.ellipse(cx,cy,rx,ry,0,0,TAU); x.fill();
+  x.save(); x.beginPath(); x.ellipse(cx,cy,rx,ry,0,0,TAU); x.clip();
+  x.lineWidth=Math.max(18,rx*.1); x.strokeStyle='#d45a00';
+  [.7,.38].forEach(function(f){x.beginPath(); x.ellipse(cx,cy,rx*f,ry*1.05,0,0,TAU); x.stroke();});
+  x.restore();
+  var sw=rx*.25, top=cy-ry;
+  x.fillStyle='#2e9e3f';
+  x.beginPath(); x.moveTo(cx-sw*.5,top+ry*.1); x.lineTo(cx-sw*.4,top-ry*.22);
+  x.quadraticCurveTo(cx-sw*.1,top-ry*.4,cx+sw*1.1,top-ry*.33);
+  x.lineTo(cx+sw*.9,top-ry*.12); x.quadraticCurveTo(cx+sw*.4,top-ry*.12,cx+sw*.55,top+ry*.1);
+  x.closePath(); x.fill();
+}
+function drawFace(x,cx,cy,rx,ry,st){
+  x.save(); x.translate(cx,cy+ry*.05); x.scale(rx/290,ry/205);
+  x.fillStyle='#ffe033'; x.strokeStyle='#ffe033';
+  function poly(p){x.beginPath(); x.moveTo(p[0],p[1]); for(var i=2;i<p.length;i+=2)x.lineTo(p[i],p[i+1]); x.closePath(); x.fill();}
+  if(st===0){
+    poly([-75,-93,-35,-25,-115,-25]); poly([75,-93,115,-25,35,-25]); poly([0,-3,18,29,-18,29]);
+    poly([-115,60,115,60,90,115,55,90,25,125,0,95,-25,125,-55,90,-90,115]);
+  } else if(st===1){
+    poly([-135,-95,-30,-45,-125,-5]); poly([135,-95,30,-45,125,-5]); poly([0,-5,20,30,-20,30]);
+    x.beginPath(); x.moveTo(-165,50); x.quadraticCurveTo(0,200,165,50); x.quadraticCurveTo(0,80,-165,50); x.closePath(); x.fill();
+    x.fillStyle='#ff8a00';
+    x.fillRect(-85,45,45,45); x.fillRect(40,45,45,45); x.fillRect(-22,92,44,42);
+  } else {
+    x.beginPath(); x.arc(-90,-55,40,0,TAU); x.fill();
+    x.beginPath(); x.arc(90,-55,40,0,TAU); x.fill();
+    x.lineWidth=38; x.lineCap='round';
+    x.beginPath(); x.arc(0,-10,150,.2*Math.PI,.8*Math.PI); x.stroke();
+  }
+  x.restore();
+}
+function drawBat(x,cx,cy,s){
+  x.save(); x.translate(cx,cy); x.scale(s,s); x.fillStyle='#0d0820';
+  var w=[-8,-6,-30,-30,-72,-22,-56,0,-42,-10,-28,10,-10,8];
+  x.beginPath(); x.moveTo(w[0],w[1]);
+  for(var i=2;i<w.length;i+=2)x.lineTo(w[i],w[i+1]);
+  for(i=w.length-2;i>=0;i-=2)x.lineTo(-w[i],w[i+1]);
+  x.closePath(); x.fill();
+  x.beginPath(); x.ellipse(0,4,11,16,0,0,TAU); x.fill();
+  x.beginPath(); x.moveTo(-9,-10); x.lineTo(-6,-26); x.lineTo(0,-12); x.lineTo(6,-26); x.lineTo(9,-10); x.closePath(); x.fill();
+  x.restore();
+}
+function makeSample(kind){
+  var c=document.createElement('canvas'); c.width=800; c.height=600;
+  var x=c.getContext('2d');
+  if(kind==='kuerbis'){
+    x.fillStyle='#16213e'; x.fillRect(0,0,800,600);
+    x.beginPath(); x.ellipse(400,355,290,205,0,0,TAU); x.fillStyle='#ff8a00'; x.fill();
+    x.save(); x.beginPath(); x.ellipse(400,355,290,205,0,0,TAU); x.clip();
+    x.lineWidth=30; x.strokeStyle='#d45a00';
+    [205,115].forEach(function(rx){x.beginPath(); x.ellipse(400,355,rx,215,0,0,TAU); x.stroke();});
+    x.restore();
+    x.fillStyle='#2e9e3f';
+    x.beginPath(); x.moveTo(360,170); x.lineTo(372,98); x.quadraticCurveTo(395,55,452,66);
+    x.lineTo(442,108); x.quadraticCurveTo(420,108,434,170); x.closePath(); x.fill();
+    x.beginPath(); x.ellipse(505,122,66,24,-.45,0,TAU); x.fill();
+    x.fillStyle='#ffe033';
+    x.beginPath(); x.moveTo(325,262); x.lineTo(365,330); x.lineTo(285,330); x.closePath(); x.fill();
+    x.beginPath(); x.moveTo(475,262); x.lineTo(515,330); x.lineTo(435,330); x.closePath(); x.fill();
+    x.beginPath(); x.moveTo(400,352); x.lineTo(418,384); x.lineTo(382,384); x.closePath(); x.fill();
+    x.beginPath(); x.moveTo(285,415); x.lineTo(515,415); x.lineTo(490,470); x.lineTo(455,445);
+    x.lineTo(425,480); x.lineTo(400,450); x.lineTo(375,480); x.lineTo(345,445); x.lineTo(310,470); x.closePath(); x.fill();
+  } else if(kind==='kuerbis2'){
+    x.fillStyle='#2a1a45'; x.fillRect(0,0,800,600);
+    x.fillStyle='#ffe033'; x.beginPath(); x.arc(690,105,60,0,TAU); x.fill();
+    drawPumpkin(x,400,360,285,200);
+    drawFace(x,400,360,285,200,1);
+  } else {
+    x.fillStyle='#2a1a45'; x.fillRect(0,0,800,600);
+    x.fillStyle='#ffe033'; x.beginPath(); x.arc(655,105,66,0,TAU); x.fill();
+    drawBat(x,175,135,1.1); drawBat(x,425,80,.8);
+    drawPumpkin(x,150,485,115,88); drawFace(x,150,485,115,88,2);
+    drawPumpkin(x,655,482,120,92); drawFace(x,655,482,120,92,1);
+    drawPumpkin(x,400,420,190,140); drawFace(x,400,420,190,140,0);
+  }
+  return c;
+}
+
+/* ---------- Quelle vorbereiten ---------- */
+function setSource(el,w,h){
+  var cur=el, cw=w, ch=h, c, nw, nh;
+  do{
+    nw=cw; nh=ch;
+    if(Math.max(cw,ch)>1024){nw=Math.max(1,Math.round(cw/2)); nh=Math.max(1,Math.round(ch/2));}
+    c=document.createElement('canvas'); c.width=nw; c.height=nh;
+    var cx=c.getContext('2d'); cx.fillStyle='#fff'; cx.fillRect(0,0,nw,nh);
+    cx.imageSmoothingQuality='high'; cx.drawImage(cur,0,0,nw,nh);
+    cur=c; cw=nw; ch=nh;
+  }while(Math.max(cw,ch)>1024);
+  var d=c.getContext('2d').getImageData(0,0,cw,ch).data, r=0,g=0,b=0,n=0;
+  function add(px,py){var o=(py*cw+px)*4; r+=d[o]; g+=d[o+1]; b+=d[o+2]; n++;}
+  var i;
+  for(i=0;i<cw;i++){add(i,0); add(i,ch-1);}
+  for(i=1;i<ch-1;i++){add(0,i); add(cw-1,i);}
+  src={canvas:c,w:cw,h:ch,edge:[r/n,g/n,b/n]};
+}
+
+/* ---------- Farben ---------- */
+function toHex(rgb){
+  return '#'+rgb.map(function(v){var s=Math.round(clamp(v,0,255)).toString(16); return s.length<2?'0'+s:s;}).join('');
+}
+function lumHex(h){
+  var r=parseInt(h.substr(1,2),16), g=parseInt(h.substr(3,2),16), b=parseInt(h.substr(5,2),16);
+  return .299*r+.587*g+.114*b;
+}
+function shade(h,f){
+  return toHex([parseInt(h.substr(1,2),16)*f,parseInt(h.substr(3,2),16)*f,parseInt(h.substr(5,2),16)*f]);
+}
+function textOn(h){return lumHex(h)>150?'#111':'#fff';}
+
+function kmeans(cells,N,k){
+  k=Math.min(k,N);
+  function dist(i,c){
+    var a=cells[i*3]-c[0], b=cells[i*3+1]-c[1], d=cells[i*3+2]-c[2];
+    return 2*a*a+4*b*b+3*d*d;
+  }
+  var m=[0,0,0], i, j;
+  for(i=0;i<N;i++){m[0]+=cells[i*3]; m[1]+=cells[i*3+1]; m[2]+=cells[i*3+2];}
+  m=[m[0]/N,m[1]/N,m[2]/N];
+  var first=0, best=Infinity;
+  for(i=0;i<N;i++){var dd=dist(i,m); if(dd<best){best=dd; first=i;}}
+  var centers=[[cells[first*3],cells[first*3+1],cells[first*3+2]]];
+  var minD=new Float32Array(N).fill(Infinity);
+  while(centers.length<k){
+    var c=centers[centers.length-1], far=-1, fd=-1;
+    for(i=0;i<N;i++){
+      var d2=dist(i,c); if(d2<minD[i])minD[i]=d2;
+      if(minD[i]>fd){fd=minD[i]; far=i;}
+    }
+    if(fd<=0)break;
+    centers.push([cells[far*3],cells[far*3+1],cells[far*3+2]]);
+  }
+  var assign=new Uint8Array(N);
+  for(var iter=0;iter<16;iter++){
+    var changed=false, sums=centers.map(function(){return [0,0,0,0];});
+    for(i=0;i<N;i++){
+      var bi=0, bd=Infinity;
+      for(j=0;j<centers.length;j++){var q=dist(i,centers[j]); if(q<bd){bd=q; bi=j;}}
+      if(assign[i]!==bi){assign[i]=bi; changed=true;}
+      var s=sums[bi]; s[0]+=cells[i*3]; s[1]+=cells[i*3+1]; s[2]+=cells[i*3+2]; s[3]++;
+    }
+    for(j=0;j<centers.length;j++){
+      var t=sums[j]; if(t[3])centers[j]=[t[0]/t[3],t[1]/t[3],t[2]/t[3]];
+    }
+    if(!changed&&iter>0)break;
+  }
+  var counts=centers.map(function(){return 0;});
+  for(i=0;i<N;i++)counts[assign[i]]++;
+  var order=[];
+  for(j=0;j<centers.length;j++)if(counts[j]>0)order.push(j);
+  order.sort(function(a,b){
+    var ca=centers[a], cb=centers[b];
+    return (.3*ca[0]+.59*ca[1]+.11*ca[2])-(.3*cb[0]+.59*cb[1]+.11*cb[2]);
+  });
+  var med=centers.map(function(){return {d:Infinity,i:-1};});
+  for(i=0;i<N;i++){
+    var a=assign[i], dm=dist(i,centers[a]);
+    if(dm<med[a].d){med[a]={d:dm,i:i};}
+  }
+  var remap={}, palette=[], cnt=[];
+  order.forEach(function(o,idx){
+    var mi=med[o].i;
+    palette.push(toHex(mi>=0?[cells[mi*3],cells[mi*3+1],cells[mi*3+2]]:centers[o]));
+    cnt.push(counts[o]); remap[o]=idx;
+  });
+  for(i=0;i<N;i++)assign[i]=remap[assign[i]];
+  return {palette:palette,assign:assign,counts:cnt};
+}
+
+/* ---------- Berechnung ---------- */
+function recompute(){
+  var g=geom(), F=6;
+  var wc=document.createElement('canvas'); wc.width=g.gx*F; wc.height=g.gy*F;
+  var c=wc.getContext('2d',{willReadFrequently:true});
+  c.fillStyle='rgb('+src.edge.map(Math.round).join(',')+')'; c.fillRect(0,0,wc.width,wc.height);
+  c.setTransform(wc.width/g.physW,0,0,wc.height/g.physH,0,0);
+  c.imageSmoothingQuality='high';
+  var p=placement(g.physW,g.physH);
+  c.drawImage(src.canvas,p.x,p.y,p.dw,p.dh);
+  var d=c.getImageData(0,0,wc.width,wc.height).data;
+  var N=g.gx*g.gy, cells=new Float32Array(N*3), bx, by, x, y, o;
+  for(by=0;by<g.gy;by++){
+    for(bx=0;bx<g.gx;bx++){
+      var r=0,gg=0,b=0;
+      for(y=0;y<F;y++){
+        o=((by*F+y)*wc.width+bx*F)*4;
+        for(x=0;x<F;x++){r+=d[o]; gg+=d[o+1]; b+=d[o+2]; o+=4;}
+      }
+      var i=(by*g.gx+bx)*3, area=F*F;
+      cells[i]=r/area; cells[i+1]=gg/area; cells[i+2]=b/area;
+    }
+  }
+  var q=kmeans(cells,N,state.k);
+  model={g:g,palette:q.palette,assign:q.assign,counts:q.counts};
+  state.sel.x=clamp(state.sel.x,0,state.nx-1);
+  state.sel.y=clamp(state.sel.y,0,state.ny-1);
+}
+
+/* ---------- Zeichnen ---------- */
+function rr(x,y,w,h,r){
+  ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath();
+}
+function colName(i){return String.fromCharCode(65+i);}
+
+function draw(){
+  if(!model||!src)return;
+  var g=model.g, css=getComputedStyle(document.documentElement);
+  var tok=function(n){return css.getPropertyValue(n).trim();};
+  var wrapW=$('wrap').clientWidth||600;
+  var M=state.labels?24:0;
+  var desktop=window.innerWidth>=900;
+  var maxH=desktop?Math.max(300,window.innerHeight-330):Math.max(300,window.innerHeight*.7);
+  var S=Math.max(.5,Math.min((wrapW-M)/g.physW,(maxH-M)/g.physH));
+  view.S=S; view.M=M;
+  var areaW=g.physW*S, areaH=g.physH*S;
+  var cssW=Math.round(areaW+M), cssH=Math.round(areaH+M);
+  var dpr=Math.min(window.devicePixelRatio||1,2);
+  cv.width=Math.round(cssW*dpr); cv.height=Math.round(cssH*dpr);
+  cv.style.width=cssW+'px'; cv.style.height=cssH+'px';
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,cssW,cssH);
+
+  var cwp=g.cW*S, chp=g.cH*S, pwp=g.pw*S, php=g.ph*S, pitch=Math.min(pwp,php), rad=pitch*.43;
+  var cx, cy, bx, by;
+
+  if(M){
+    ctx.fillStyle=tok('--muted'); ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.font='600 12px Barlow, system-ui, sans-serif';
+    if(cwp>=16)for(cx=0;cx<state.nx;cx++)ctx.fillText(colName(cx),M+(cx+.5)*cwp,M/2);
+    if(chp>=16)for(cy=0;cy<state.ny;cy++)ctx.fillText(String(cy+1),M/2,M+(cy+.5)*chp);
+  }
+  ctx.save(); ctx.translate(M,M);
+  ctx.fillStyle=tok('--floor'); ctx.fillRect(0,0,areaW,areaH);
+
+  var inset=Math.max(1,Math.min(cwp,chp)*.012), crateR=Math.min(cwp,chp)*.04;
+  for(cy=0;cy<state.ny;cy++)for(cx=0;cx<state.nx;cx++){
+    rr(cx*cwp+inset,cy*chp+inset,cwp-2*inset,chp-2*inset,crateR);
+    ctx.fillStyle=tok('--crate'); ctx.fill();
+  }
+
+  var idx, holeCol=tok('--hole'), outline=model.palette.map(function(h){return shade(h,.6);});
+  for(by=0;by<g.gy;by++)for(bx=0;bx<g.gx;bx++){
+    var px=(bx+.5)*pwp, py=(by+.5)*php;
+    ctx.beginPath(); ctx.arc(px,py,pitch*.47,0,TAU); ctx.fillStyle=holeCol; ctx.fill();
+    idx=model.assign[by*g.gx+bx];
+    ctx.beginPath(); ctx.arc(px,py,rad,0,TAU); ctx.fillStyle=model.palette[idx]; ctx.fill();
+    ctx.lineWidth=Math.max(1,rad*.08); ctx.strokeStyle=outline[idx]; ctx.stroke();
+  }
+
+  ctx.lineWidth=1.5; ctx.strokeStyle=tok('--crate-edge');
+  for(cy=0;cy<state.ny;cy++)for(cx=0;cx<state.nx;cx++){
+    rr(cx*cwp+inset,cy*chp+inset,cwp-2*inset,chp-2*inset,crateR); ctx.stroke();
+  }
+
+  if(state.numbers&&rad>=7){
+    ctx.font='700 '+Math.floor(rad*1.05)+'px "Barlow Condensed", Arial Narrow, sans-serif';
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    for(by=0;by<g.gy;by++)for(bx=0;bx<g.gx;bx++){
+      idx=model.assign[by*g.gx+bx];
+      ctx.fillStyle=textOn(model.palette[idx]);
+      ctx.fillText(String(idx+1),(bx+.5)*pwp,(by+.5)*php+rad*.04);
+    }
+  }
+
+  ctx.lineWidth=3; ctx.strokeStyle=tok('--signal');
+  rr(state.sel.x*cwp+inset,state.sel.y*chp+inset,cwp-2*inset,chp-2*inset,crateR); ctx.stroke();
+  ctx.restore();
+  cv.classList.toggle('grab',true);
+}
+
+/* ---------- Oberfläche ---------- */
+function fmtM(cm){return (cm/100).toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2});}
+function renderStats(){
+  var g=model.g, crates=state.nx*state.ny;
+  $('sCrates').textContent=crates.toLocaleString('de-DE');
+  $('sBottles').textContent=(crates*12).toLocaleString('de-DE');
+  $('sSize').textContent=fmtM(g.physW)+' × '+fmtM(g.physH)+' m';
+}
+function renderLegend(){
+  var el=$('legend'), total=model.g.gx*model.g.gy;
+  el.innerHTML='';
+  model.palette.forEach(function(hex,j){
+    var row=document.createElement('div'); row.className='leg-row';
+    var inp=document.createElement('input'); inp.type='color'; inp.value=hex;
+    inp.id='col'+j; inp.setAttribute('aria-label','Farbe '+(j+1)+' anpassen');
+    var nr=document.createElement('span'); nr.className='nr'; nr.textContent='Nr. '+(j+1);
+    var bar=document.createElement('div'); bar.className='bar';
+    var fill=document.createElement('i'); fill.style.width=(model.counts[j]/total*100).toFixed(1)+'%'; fill.style.background=hex;
+    bar.appendChild(fill);
+    var cnt=document.createElement('span'); cnt.className='cnt'; cnt.textContent=model.counts[j].toLocaleString('de-DE')+' Fl.';
+    inp.addEventListener('input',function(){
+      model.palette[j]=inp.value; fill.style.background=inp.value; draw(); renderDetail();
+    });
+    row.appendChild(inp); row.appendChild(nr); row.appendChild(bar); row.appendChild(cnt);
+    el.appendChild(row);
+  });
+}
+function renderDetail(){
+  var g=model.g, sx=state.sel.x, sy=state.sel.y;
+  $('dName').textContent=colName(sx)+(sy+1);
+  $('dInfo').textContent='Spalte '+colName(sx)+', Reihe '+(sy+1);
+  var mini=$('mini'); mini.innerHTML=''; mini.style.gridTemplateColumns='repeat('+g.cols+',34px)';
+  var cnt={}, r, c, idx;
+  for(r=0;r<g.rows;r++)for(c=0;c<g.cols;c++){
+    idx=model.assign[(sy*g.rows+r)*g.gx+sx*g.cols+c];
+    cnt[idx]=(cnt[idx]||0)+1;
+    var d=document.createElement('div'); d.className='cap';
+    d.style.background=model.palette[idx]; d.style.color=textOn(model.palette[idx]);
+    d.style.borderColor=shade(model.palette[idx],.6);
+    d.textContent=String(idx+1);
+    mini.appendChild(d);
+  }
+  var parts=Object.keys(cnt).sort(function(a,b){return a-b;}).map(function(i){return cnt[i]+'× Nr. '+(+i+1);});
+  $('dInfo').textContent='Spalte '+colName(sx)+', Reihe '+(sy+1)+'. '+parts.join(', ');
+}
+
+function drawThumb(){
+  var t=$('thumb'), tx=t.getContext('2d');
+  var s=Math.min(t.width/src.w,t.height/src.h), w=src.w*s, h=src.h*s;
+  tx.clearRect(0,0,t.width,t.height);
+  t.style.aspectRatio=(src.w/src.h).toFixed(4);
+  t.width=160; t.height=Math.max(1,Math.round(160*src.h/src.w));
+  tx.drawImage(src.canvas,0,0,t.width,t.height);
+}
+var raf=0, needFull=false;
+function schedule(full){
+  needFull=needFull||full;
+  if(raf)return;
+  raf=requestAnimationFrame(function(){
+    raf=0;
+    if(needFull){needFull=false; recompute(); renderLegend(); renderStats(); drawThumb();}
+    draw(); renderDetail();
+  });
+}
+
+/* ---------- Eingaben ---------- */
+function setCount(id,v){
+  v=clamp(Math.round(v)||1,1,26); state[id]=v; $(id).value=v; schedule(true);
+}
+Array.prototype.forEach.call(document.querySelectorAll('[data-step]'),function(b){
+  b.addEventListener('click',function(){setCount(b.dataset.step,state[b.dataset.step]+(+b.dataset.d));});
+});
+['nx','ny'].forEach(function(id){
+  $(id).addEventListener('input',function(){
+    var v=parseInt($(id).value,10); if(isNaN(v))return;
+    state[id]=clamp(v,1,26); schedule(true);
+  });
+  $(id).addEventListener('change',function(){setCount(id,parseInt($(id).value,10));});
+});
+['L','W'].forEach(function(id){
+  $(id).addEventListener('input',function(){
+    var v=parseFloat($(id).value); if(isNaN(v)||v<10)return;
+    state[id]=clamp(v,10,100); schedule(true);
+  });
+});
+function bindSeg(attr,key){
+  Array.prototype.forEach.call(document.querySelectorAll('['+attr+']'),function(b){
+    b.addEventListener('click',function(){
+      state[key]=b.getAttribute(attr);
+      Array.prototype.forEach.call(document.querySelectorAll('['+attr+']'),function(o){
+        o.setAttribute('aria-pressed',o===b?'true':'false');
+      });
+      schedule(true);
+    });
+  });
+}
+bindSeg('data-orient','orient');
+bindSeg('data-fit','fit');
+
+function bindRange(id,key,scale,fmt,full){
+  var el=$(id);
+  el.addEventListener('input',function(){
+    state[key]=(+el.value)/scale;
+    $(id+'O').textContent=fmt(+el.value);
+    schedule(full);
+  });
+}
+bindRange('zoom','zoom',1,function(v){return v+' %';},true);
+bindRange('px','px',100,function(v){return String(v);},true);
+bindRange('py','py',100,function(v){return String(v);},true);
+bindRange('k','k',1,function(v){return String(v);},true);
+$('numbers').addEventListener('change',function(e){state.numbers=e.target.checked; schedule(false);});
+$('labels').addEventListener('change',function(e){state.labels=e.target.checked; schedule(false);});
+
+function syncImageControls(){
+  $('zoom').value=state.zoom; $('zoomO').textContent=state.zoom+' %';
+  $('px').value=Math.round(state.px*100); $('pxO').textContent=String(Math.round(state.px*100));
+  $('py').value=Math.round(state.py*100); $('pyO').textContent=String(Math.round(state.py*100));
+}
+function resetPlacement(){state.zoom=100; state.px=.5; state.py=.5; syncImageControls();}
+$('resetImg').addEventListener('click',function(){resetPlacement(); schedule(true);});
+
+function markSample(name){
+  Array.prototype.forEach.call(document.querySelectorAll('[data-sample]'),function(b){
+    b.setAttribute('aria-pressed',b.dataset.sample===name?'true':'false');
+  });
+}
+Array.prototype.forEach.call(document.querySelectorAll('[data-sample]'),function(b){
+  b.addEventListener('click',function(){
+    var c=makeSample(b.dataset.sample); setSource(c,c.width,c.height);
+    state.k=b.dataset.sample==='kuerbis3'?6:5; $('k').value=state.k; $('kO').textContent=String(state.k);
+    $('fileErr').hidden=true; markSample(b.dataset.sample); resetPlacement(); schedule(true);
+  });
+});
+$('file').addEventListener('change',function(e){
+  var f=e.target.files&&e.target.files[0]; if(!f)return;
+  var url=URL.createObjectURL(f), im=new Image();
+  im.onload=function(){
+    try{setSource(im,im.naturalWidth,im.naturalHeight);}catch(err){$('fileErr').hidden=false; URL.revokeObjectURL(url); return;}
+    URL.revokeObjectURL(url);
+    $('fileErr').hidden=true; markSample(''); resetPlacement(); schedule(true);
+  };
+  im.onerror=function(){URL.revokeObjectURL(url); $('fileErr').hidden=false;};
+  im.src=url;
+});
+
+/* ---------- Canvas: Auswahl, Ziehen, Tasten ---------- */
+var drag=null;
+cv.addEventListener('pointerdown',function(e){
+  drag={x:e.clientX,y:e.clientY,px:state.px,py:state.py,moved:false,type:e.pointerType};
+  if(e.pointerType!=='touch'){try{cv.setPointerCapture(e.pointerId);}catch(err){}}
+});
+cv.addEventListener('pointermove',function(e){
+  if(!drag||drag.type==='touch'||!model)return;
+  var dx=e.clientX-drag.x, dy=e.clientY-drag.y;
+  if(!drag.moved&&Math.hypot(dx,dy)<5)return;
+  drag.moved=true; cv.classList.add('grabbing');
+  var g=model.g, p=placement(g.physW,g.physH);
+  state.px=clamp(drag.px+dx/view.S/p.dw,0,1);
+  state.py=clamp(drag.py+dy/view.S/p.dh,0,1);
+  syncImageControls(); schedule(true);
+});
+function endDrag(e){
+  if(!drag)return;
+  var wasMoved=drag.moved; drag=null; cv.classList.remove('grabbing');
+  if(wasMoved||!model||e.type==='pointercancel')return;
+  var rect=cv.getBoundingClientRect(), g=model.g;
+  var x=e.clientX-rect.left-view.M, y=e.clientY-rect.top-view.M;
+  if(x<0||y<0)return;
+  var sx=Math.floor(x/(g.cW*view.S)), sy=Math.floor(y/(g.cH*view.S));
+  if(sx>=0&&sx<state.nx&&sy>=0&&sy<state.ny){state.sel.x=sx; state.sel.y=sy; schedule(false);}
+}
+cv.addEventListener('pointerup',endDrag);
+cv.addEventListener('pointercancel',endDrag);
+cv.addEventListener('keydown',function(e){
+  var dx=0, dy=0;
+  if(e.key==='ArrowLeft')dx=-1; else if(e.key==='ArrowRight')dx=1;
+  else if(e.key==='ArrowUp')dy=-1; else if(e.key==='ArrowDown')dy=1; else return;
+  e.preventDefault();
+  state.sel.x=clamp(state.sel.x+dx,0,state.nx-1);
+  state.sel.y=clamp(state.sel.y+dy,0,state.ny-1);
+  schedule(false);
+});
+
+/* ---------- Anpassung an Größe und Farbschema ---------- */
+if(window.ResizeObserver){new ResizeObserver(function(){schedule(false);}).observe($('wrap'));}
+else{window.addEventListener('resize',function(){schedule(false);});}
+try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',function(){schedule(false);});}catch(err){}
+new MutationObserver(function(){schedule(false);}).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(function(){schedule(false);});
+
+/* ---------- Start ---------- */
+var first=makeSample('kuerbis'); setSource(first,first.width,first.height);
+schedule(true);
+})();
+</script>
+</body>
+</html>
