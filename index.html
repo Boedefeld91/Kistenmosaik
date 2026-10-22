@@ -63,6 +63,7 @@ input[type=number]{font:inherit;background:var(--field);color:var(--ink);border:
 .stepper button:last-child{border-radius:0 8px 8px 0}
 .stepper button:hover{background:var(--line)}
 .seg{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg.three{grid-template-columns:repeat(3,1fr)}
 .seg button{font:inherit;font-weight:500;padding:9px 10px;background:var(--field);color:var(--ink);border:0;cursor:pointer}
 .seg button+button{border-left:1px solid var(--line)}
 .seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
@@ -138,9 +139,10 @@ canvas.grabbing{cursor:grabbing}
       <p class="note" id="crateNote">Anzahl Kästen nebeneinander und übereinander. Ein Kasten fasst 20 Flaschen.</p>
       <div class="field">
         <span class="lbl">Kastenart</span>
-        <div class="seg" role="group" aria-label="Kastenart">
-          <button type="button" data-type="12" aria-pressed="false">12er Kasten</button>
-          <button type="button" data-type="20" aria-pressed="true">20er Kasten</button>
+        <div class="seg three" role="group" aria-label="Kastenart">
+          <button type="button" data-type="12" aria-pressed="false">12er</button>
+          <button type="button" data-type="20" aria-pressed="true">20er</button>
+          <button type="button" data-type="24" aria-pressed="false">24er</button>
         </div>
       </div>
       <div class="field">
@@ -228,10 +230,11 @@ var cv=$('cv'), ctx=cv.getContext('2d');
 var view={S:1,M:0};
 
 /* ---------- Geometrie ---------- */
+var DIMS={'12':[4,3],'20':[5,4],'24':[6,4]};
 function geom(){
   var land=state.orient==='quer';
   var cW=land?state.L:state.W, cH=land?state.W:state.L;
-  var lng=state.type==='20'?5:4, sht=state.type==='20'?4:3;
+  var lng=DIMS[state.type][0], sht=DIMS[state.type][1];
   var cols=land?lng:sht, rows=land?sht:lng;
   return {cW:cW,cH:cH,cols:cols,rows:rows,physW:state.nx*cW,physH:state.ny*cH,
           pw:cW/cols,ph:cH/rows,gx:state.nx*cols,gy:state.ny*rows};
@@ -523,7 +526,7 @@ function fmtM(cm){return (cm/100).toLocaleString('de-DE',{minimumFractionDigits:
 function renderStats(){
   var g=model.g, crates=state.nx*state.ny;
   $('sCrates').textContent=crates.toLocaleString('de-DE');
-  $('sBottles').textContent=(crates*(state.type==='20'?20:12)).toLocaleString('de-DE');
+  $('sBottles').textContent=(crates*(+state.type)).toLocaleString('de-DE');
   $('sSize').textContent=fmtM(g.physW)+' × '+fmtM(g.physH)+' m';
 }
 function renderLegend(){
@@ -618,10 +621,10 @@ bindSeg('data-orient','orient');
 bindSeg('data-fit','fit');
 bindSeg('data-type','type');
 function updateLabels(){
-  var n=state.type==='20', a=n?5:4, b=n?4:3;
+  var a=DIMS[state.type][0], b=DIMS[state.type][1];
   $('oQuer').textContent='quer ('+a+' × '+b+')';
   $('oHoch').textContent='hoch ('+b+' × '+a+')';
-  $('crateNote').textContent='Anzahl Kästen nebeneinander und übereinander. Ein Kasten fasst '+(n?20:12)+' Flaschen.';
+  $('crateNote').textContent='Anzahl Kästen nebeneinander und übereinander. Ein Kasten fasst '+state.type+' Flaschen.';
 }
 Array.prototype.forEach.call(document.querySelectorAll('[data-type]'),function(b){b.addEventListener('click',updateLabels);});
 
