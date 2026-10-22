@@ -463,7 +463,11 @@ function draw(){
   var M=state.labels?24:0;
   var desktop=window.innerWidth>=900;
   var maxH=desktop?Math.max(300,window.innerHeight-330):Math.max(300,window.innerHeight*.7);
-  var S=Math.max(.5,Math.min((wrapW-M)/g.physW,(maxH-M)/g.physH));
+  /* Automatische Einpassung, danach per Regler "Ansichtsgröße" verkleinerbar */
+  /* Maßstab: nie größer als bei 7 × 7 Kästen, damit ein Kasten immer gleich groß erscheint */
+  var fit=Math.min((wrapW-M)/g.physW,(maxH-M)/g.physH);
+  var refFit=Math.min((wrapW-M)/(7*g.cW),(maxH-M)/(7*g.cH));
+  var S=Math.max(.2,Math.min(fit,refFit));
   view.S=S; view.M=M;
   var areaW=g.physW*S, areaH=g.physH*S;
   var cssW=Math.round(areaW+M), cssH=Math.round(areaH+M);
