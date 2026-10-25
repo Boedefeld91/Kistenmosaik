@@ -1,3 +1,4 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <!doctype html>
 <html lang="de">
 <head>
@@ -115,6 +116,7 @@ canvas{display:block;border-radius:6px;max-width:100%;cursor:pointer}
 canvas.grab{cursor:grab}
 canvas.grabbing{cursor:grabbing}
 canvas.paint{cursor:crosshair;touch-action:none}
+.toolhint{margin:0}
 .detail{margin-top:14px;padding-top:14px;border-top:1px solid var(--line);display:flex;gap:6px 18px;align-items:center;flex-wrap:wrap}
 .detail h2{margin-bottom:2px}
 .detail .name{font:700 30px/1 var(--display);color:var(--ink);letter-spacing:.02em}
@@ -186,7 +188,7 @@ canvas.paint{cursor:crosshair;touch-action:none}
     <div class="group">
       <h2>Bild</h2>
       <div class="chips">
-        <button type="button" class="btn" data-sample="kuerbis" aria-pressed="false">Grinse-Kürbis</button>
+        <button type="button" class="btn" data-sample="kuerbis4" data-crates="4" aria-pressed="false">Kürbis 4 × 4</button>
         <button type="button" class="btn" data-sample="kuerbis2" aria-pressed="true">Böser Kürbis</button>
         <button type="button" class="btn" data-sample="kuerbis3" aria-pressed="false">Halloween-Nacht</button>
         <label class="btn" id="fileBtn"><input class="sr-only" id="file" type="file" accept="image/*">Eigenes Bild wählen</label>
@@ -223,7 +225,7 @@ canvas.paint{cursor:crosshair;touch-action:none}
     <div class="toolbar" id="toolbar">
       <div class="trow">
         <div class="tools" role="group" aria-label="Werkzeuge">
-          <button type="button" class="btn" data-tool="pen" aria-pressed="true" title="Stift (B)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20l1-4L16.5 4.5a2 2 0 012.8 0l.2.2a2 2 0 010 2.8L8 19z"/><path d="M14 7l3 3"/></svg>Stift</button>
+          <button type="button" class="btn" data-tool="pen" aria-pressed="false" title="Stift (B)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20l1-4L16.5 4.5a2 2 0 012.8 0l.2.2a2 2 0 010 2.8L8 19z"/><path d="M14 7l3 3"/></svg>Stift</button>
           <button type="button" class="btn" data-tool="eraser" aria-pressed="false" title="Radierer (E): entfernt Gemaltes, das Bild scheint wieder durch"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 20h10"/><path d="M5 15l8.5-8.5a2 2 0 012.8 0l2.2 2.2a2 2 0 010 2.8L11 19H8z"/></svg>Radierer</button>
           <button type="button" class="btn" data-tool="fill" aria-pressed="false" title="Fläche füllen (F)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l6.5-6.5 7 7L12 19z"/><path d="M20.5 16c0 1.2.8 1.8.8 2.7a.9.9 0 01-1.6 0c0-.9.8-1.5.8-2.7z"/></svg>Füllen</button>
           <button type="button" class="btn" data-tool="pick" aria-pressed="false" title="Farbe aufnehmen (P)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 4.5l4.5 4.5"/><path d="M17.2 2.8a2.2 2.2 0 013.1 3.1L9.5 16.7 5.5 18.5l1.8-4z"/></svg>Pipette</button>
@@ -243,6 +245,7 @@ canvas.paint{cursor:crosshair;touch-action:none}
           </div>
         </div>
       </div>
+      <p class="note toolhint">Kein Werkzeug aktiv: Tippen wählt einen Kasten, die Seite lässt sich ungestört scrollen. Zum Malen ein Werkzeug antippen, nochmaliges Antippen beendet es.</p>
       <div class="trow">
         <div class="strip" id="strip" role="radiogroup" aria-label="Malfarbe wählen"></div>
         <label class="tone" for="curColor">Farbton <input type="color" id="curColor" value="#ff8a00"></label>
@@ -278,7 +281,7 @@ var DEFAULT_PALETTE=['#1f1b24','#ff8a00','#ffe033','#2e9e3f','#7a3fb0','#f2f2ee'
 var EXTRA_COLORS=['#e8a0bf','#8b5a2b','#00a6a6','#9aa0a6','#ff5d8f','#9be15d','#4c6ef5','#c0392b'];
 
 var state={type:'20',nx:7,ny:7,orient:'quer',L:40,W:30,fit:'cover',zoom:100,px:.5,py:.5,k:5,numbers:false,labels:true,sel:{x:0,y:0},
-  useImage:true,tool:'pen',brush:1,color:1};
+  useImage:true,tool:'none',brush:1,color:1};
 var src=null, img=null, model=null, paint=null, palRefs=[], stroke=null, legSig='', legRows=[];
 var cv=$('cv'), ctx=cv.getContext('2d');
 var view={S:1,M:0};
@@ -349,7 +352,32 @@ function drawBat(x,cx,cy,s){
 function makeSample(kind){
   var c=document.createElement('canvas'); c.width=800; c.height=600;
   var x=c.getContext('2d');
-  if(kind==='kuerbis'){
+  if(kind==='kuerbis4'){
+    /* Pixelbild passend zu 20 x 16 Flaschen: jede Zelle ist genau eine Flasche */
+    var CW=40, CH=37.5;
+    var cell=function(r,c0,c1,col){
+      x.fillStyle=col;
+      var y0=Math.round(r*CH), y1=Math.round((r+1)*CH);
+      x.fillRect(c0*CW,y0,(c1-c0+1)*CW,y1-y0);
+    };
+    x.fillStyle='#2a1a45'; x.fillRect(0,0,800,600);
+    var ext=[null,null,[7,12],[4,15],[2,17],[1,18],[1,18],[1,18],[1,18],[1,18],[1,18],[1,18],[2,17],[3,16],[6,13]];
+    var r, q;
+    cell(0,9,10,'#2e9e3f'); cell(1,9,11,'#2e9e3f');
+    for(r=2;r<=14;r++)for(q=ext[r][0];q<=ext[r][1];q++){
+      cell(r,q,q,(r>=3&&r<=13&&(q===6||q===13))?'#d45a00':'#ff8a00');
+    }
+    var Y='#ffe033', O='#ff8a00';
+    /* Augen: Dreiecke, gespiegelt */
+    cell(5,5,6,Y); cell(6,4,7,Y); cell(7,3,8,Y);
+    cell(5,13,14,Y); cell(6,12,15,Y); cell(7,11,16,Y);
+    /* Nase */
+    cell(8,9,10,Y);
+    /* Mund mit zwei oberen Zähnen und einer unteren Lücke */
+    cell(10,4,15,Y); cell(10,6,7,O); cell(10,12,13,O);
+    cell(11,4,15,Y);
+    cell(12,5,14,Y); cell(12,9,10,O);
+  } else if(kind==='kuerbis'){
     x.fillStyle='#16213e'; x.fillRect(0,0,800,600);
     x.beginPath(); x.ellipse(400,355,290,205,0,0,TAU); x.fillStyle='#ff8a00'; x.fill();
     x.save(); x.beginPath(); x.ellipse(400,355,290,205,0,0,TAU); x.clip();
@@ -605,11 +633,12 @@ function applyStroke(from,to){
 }
 
 /* ---------- Malfarben ---------- */
+function isPaint(){return state.tool!=='move'&&state.tool!=='none';}
 function setTool(t){
   state.tool=t;
   qsa('[data-tool]').forEach(function(b){b.setAttribute('aria-pressed',b.dataset.tool===t?'true':'false');});
   cv.classList.toggle('grab',t==='move');
-  cv.classList.toggle('paint',t!=='move');
+  cv.classList.toggle('paint',isPaint());
 }
 function selectColor(i){
   if(!paint||i<0||i>=paint.palette.length)return;
@@ -932,6 +961,9 @@ function markSample(name){
 qsa('[data-sample]').forEach(function(b){
   b.addEventListener('click',function(){
     var c=makeSample(b.dataset.sample); setSource(c,c.width,c.height);
+    if(b.dataset.crates){
+      state.nx=state.ny=+b.dataset.crates; $('nx').value=state.nx; $('ny').value=state.ny;
+    }
     state.k=b.dataset.sample==='kuerbis3'?6:5; $('k').value=state.k; $('kO').textContent=String(state.k);
     state.useImage=true; updateImgUI();
     $('fileErr').hidden=true; markSample(b.dataset.sample); resetPlacement(); schedule(true);
@@ -954,7 +986,7 @@ $('file').addEventListener('change',function(e){
 });
 
 qsa('[data-tool]').forEach(function(b){
-  b.addEventListener('click',function(){setTool(b.dataset.tool);});
+  b.addEventListener('click',function(){setTool(b.dataset.tool===state.tool?'none':b.dataset.tool);});
 });
 qsa('[data-brush]').forEach(function(b){
   b.addEventListener('click',function(){
@@ -982,7 +1014,7 @@ document.addEventListener('keydown',function(e){
   if(mod&&k==='y'){e.preventDefault(); redo(); return;}
   if(mod||e.altKey)return;
   var map={b:'pen',e:'eraser',f:'fill',p:'pick',h:'move'};
-  if(map[k]){setTool(map[k]); return;}
+  if(map[k]){setTool(map[k]===state.tool?'none':map[k]); return;}
   if(/^[1-9]$/.test(k)){var i=+k-1; if(i<paint.palette.length)selectColor(i);}
 });
 
@@ -1000,9 +1032,9 @@ function setSelFromCell(c){
   if(sx===state.sel.x&&sy===state.sel.y)return false;
   state.sel.x=sx; state.sel.y=sy; return true;
 }
-cv.addEventListener('contextmenu',function(e){if(state.tool!=='move')e.preventDefault();});
+cv.addEventListener('contextmenu',function(e){if(isPaint())e.preventDefault();});
 cv.addEventListener('pointerdown',function(e){
-  if(state.tool!=='move'){
+  if(isPaint()){
     if(!paint||!model||(e.button!==0&&e.button!==2))return;
     e.preventDefault();
     try{cv.focus({preventScroll:true});}catch(err){}
@@ -1030,10 +1062,14 @@ cv.addEventListener('pointerdown',function(e){
     return;
   }
   drag={x:e.clientX,y:e.clientY,px:state.px,py:state.py,moved:false,type:e.pointerType};
-  if(e.pointerType!=='touch'){try{cv.setPointerCapture(e.pointerId);}catch(err){}}
+  if(e.pointerType!=='touch'&&state.tool==='move'){try{cv.setPointerCapture(e.pointerId);}catch(err){}}
 });
 cv.addEventListener('pointermove',function(e){
-  if(state.tool!=='move'){
+  if(state.tool==='none'){
+    if(model&&e.pointerType==='mouse'&&!drag){var hc=cellAt(e); if(setSelFromCell(hc))schedule(false);}
+    return;
+  }
+  if(isPaint()){
     if(!paint||!model)return;
     var c=cellAt(e);
     if(stroke){
@@ -1088,10 +1124,12 @@ if(document.fonts&&document.fonts.ready)document.fonts.ready.then(function(){sch
 
 /* ---------- Start ---------- */
 var first=makeSample('kuerbis2'); setSource(first,first.width,first.height);
-setTool('pen'); updateImgUI();
+setTool('none'); updateImgUI();
 schedule(true);
 })();
 </script>
 
 </body>
 </html>
+
+</body></html>
