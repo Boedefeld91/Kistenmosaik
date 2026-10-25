@@ -1,9 +1,4 @@
 <!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
-<!doctype html>
-<html lang="de">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Kistenmosaik</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -13,7 +8,7 @@
 body{margin:0}
 [hidden]{display:none!important}
 /* Layout: Bedienfeld links, Bauplan rechts (am Desktop mitlaufend); mobil steht der Bauplan oben.
-   Die Werkzeugleiste sitzt immer direkt über dem Bauplan. Gemaltes liegt als Ebene über dem Bild.
+   Die Werkzeugleiste sitzt immer direkt über dem Bauplan. Das Bild wird beim Laden in Kronkorken-Pixel umgerechnet, danach ist jede Flasche einzeln bearbeitbar.
    Farben: Flaschenglas-Gruen als Akzent, Pfandschild-Gelb fuer die Auswahl, kuehles Graugruen als Grund. */
 :root{
   --bg:#e6eae3;--panel:#f6f8f3;--ink:#18211c;--muted:#56625a;--line:#cbd3c8;
@@ -131,8 +126,6 @@ canvas.paint{cursor:crosshair;touch-action:none}
 :root[data-theme="dark"] .err{color:#ff8a80}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .err{color:#ff8a80}}
 </style>
-</head>
-<body>
 
 <header class="head">
   <h1>Kistenmosaik</h1>
@@ -192,25 +185,27 @@ canvas.paint{cursor:crosshair;touch-action:none}
         <button type="button" class="btn" data-sample="kuerbis2" aria-pressed="true">Böser Kürbis</button>
         <button type="button" class="btn" data-sample="kuerbis3" aria-pressed="false">Halloween-Nacht</button>
         <label class="btn" id="fileBtn"><input class="sr-only" id="file" type="file" accept="image/*">Eigenes Bild wählen</label>
-        <button type="button" class="btn" id="noImg" aria-pressed="false">Ohne Bild</button>
+        <button type="button" class="btn" id="noImg" aria-pressed="false">Leeres Raster</button>
       </div>
       <p class="err" id="fileErr" hidden>Das Bild ließ sich nicht öffnen. Probiere ein JPG oder PNG.</p>
       <div class="imgctl" id="imgCtl">
-        <div class="thumb"><canvas id="thumb" width="160" height="120" role="img" aria-label="Originalbild zum Vergleich"></canvas><span class="note">Originalbild zum Vergleich. Auf dem Bauplan erscheint das Bild nur durch gleichmäßig gefärbte Kronkorken. Was du darüber malst, liegt als eigene Ebene darüber.</span></div>
+        <div class="thumb"><canvas id="thumb" width="160" height="120" role="img" aria-label="Originalbild zum Vergleich"></canvas><span class="note">Originalbild zum Vergleich. Beim Laden rechnet die Seite das Bild in Kronkorken um. Danach kannst du jede einzelne Flasche mit den Werkzeugen über dem Bauplan ändern.</span></div>
         <div class="field"><label class="lbl" for="zoom">Größe <output id="zoomO">100 %</output></label><input id="zoom" type="range" min="40" max="300" step="5" value="100"></div>
         <div class="field"><label class="lbl" for="px">Nach rechts schieben <output id="pxO">50</output></label><input id="px" type="range" min="0" max="100" step="1" value="50"></div>
         <div class="field"><label class="lbl" for="py">Nach unten schieben <output id="pyO">50</output></label><input id="py" type="range" min="0" max="100" step="1" value="50"></div>
-        <div><button type="button" class="btn" id="resetImg">Bild zurücksetzen</button></div>
+        <div class="chips"><button type="button" class="btn" id="resetImg">Position zurücksetzen</button><button type="button" class="btn" id="reconv" title="Das Bild noch einmal in Kronkorken umrechnen">Neu umrechnen</button></div>
+        <p class="note">Größe, Position und Farbanzahl rechnen das Bild neu um. Was du schon geändert hast, holst du mit Strg+Z zurück.</p>
       </div>
     </div>
 
     <div class="group">
       <h2>Farben</h2>
       <div class="field" id="kField"><label class="lbl" for="k">Anzahl Bildfarben <output id="kO">5</output></label><input id="k" type="range" min="2" max="12" step="1" value="5"></div>
+      <div class="field" id="dField"><label class="lbl" for="detail">Details betonen <output id="detailO">70 %</output></label><input id="detail" type="range" min="0" max="100" step="5" value="70"><p class="note">Höhere Werte erhalten kleine Merkmale wie Augen und Mund besser, besonders bei wenigen Kästen.</p></div>
       <div class="legend" id="legend"></div>
       <p class="note" id="emptyNote" hidden></p>
-      <div><button type="button" class="btn" id="delColor">Gewählte Malfarbe entfernen</button></div>
-      <p class="note">Jede Flasche ist ein Bildpunkt. Die Liste zeigt, wie viele Kronkorken du von jeder Farbe brauchst. Ein Klick auf ein Farbfeld ändert den Farbton, ein Klick auf „Nr.“ wählt die Farbe zum Malen. Neue Malfarben fügst du mit dem Plus über dem Bauplan hinzu. Entfernst du eine Malfarbe, scheint dort das Bild wieder durch.</p>
+      <div><button type="button" class="btn" id="delColor">Gewählte Farbe entfernen</button></div>
+      <p class="note">Jede Flasche ist ein Bildpunkt. Die Liste zeigt, wie viele Kronkorken du von jeder Farbe brauchst. Ein Klick auf ein Farbfeld ändert den Farbton, ein Klick auf „Nr.“ wählt die Farbe zum Malen. Neue Farben fügst du mit dem Plus über dem Bauplan hinzu. Entfernst du eine Farbe, gehen ihre Flaschen in der ähnlichsten Farbe auf.</p>
       <p class="note">Tastatur: B Stift, E Radierer, F Füllen, P Pipette, H Bild schieben, Ziffern 1 bis 9 wählen die Malfarbe, Strg+Z macht rückgängig. Die rechte Maustaste radiert.</p>
     </div>
 
@@ -226,15 +221,15 @@ canvas.paint{cursor:crosshair;touch-action:none}
       <div class="trow">
         <div class="tools" role="group" aria-label="Werkzeuge">
           <button type="button" class="btn" data-tool="pen" aria-pressed="false" title="Stift (B)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20l1-4L16.5 4.5a2 2 0 012.8 0l.2.2a2 2 0 010 2.8L8 19z"/><path d="M14 7l3 3"/></svg>Stift</button>
-          <button type="button" class="btn" data-tool="eraser" aria-pressed="false" title="Radierer (E): entfernt Gemaltes, das Bild scheint wieder durch"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 20h10"/><path d="M5 15l8.5-8.5a2 2 0 012.8 0l2.2 2.2a2 2 0 010 2.8L11 19H8z"/></svg>Radierer</button>
+          <button type="button" class="btn" data-tool="eraser" aria-pressed="false" title="Radierer (E): entfernt den Kronkorken, die Flasche bleibt leer"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 20h10"/><path d="M5 15l8.5-8.5a2 2 0 012.8 0l2.2 2.2a2 2 0 010 2.8L11 19H8z"/></svg>Radierer</button>
           <button type="button" class="btn" data-tool="fill" aria-pressed="false" title="Fläche füllen (F)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l6.5-6.5 7 7L12 19z"/><path d="M20.5 16c0 1.2.8 1.8.8 2.7a.9.9 0 01-1.6 0c0-.9.8-1.5.8-2.7z"/></svg>Füllen</button>
           <button type="button" class="btn" data-tool="pick" aria-pressed="false" title="Farbe aufnehmen (P)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 4.5l4.5 4.5"/><path d="M17.2 2.8a2.2 2.2 0 013.1 3.1L9.5 16.7 5.5 18.5l1.8-4z"/></svg>Pipette</button>
-          <button type="button" class="btn" data-tool="move" aria-pressed="false" title="Bild auf dem Raster verschieben (H)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v18M3 12h18"/><path d="M9 6l3-3 3 3M9 18l3 3 3-3M6 9l-3 3 3 3M18 9l3 3-3 3"/></svg>Bild schieben</button>
+          <button type="button" class="btn" data-tool="move" aria-pressed="false" title="Bild auf dem Raster verschieben (H), rechnet das Bild dabei neu um"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v18M3 12h18"/><path d="M9 6l3-3 3 3M9 18l3 3 3-3M6 9l-3 3 3 3M18 9l3 3-3 3"/></svg>Bild schieben</button>
         </div>
         <div class="tools">
           <button type="button" class="btn icon" id="undo" aria-label="Rückgängig" title="Rückgängig (Strg+Z)" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 7l-4 4 4 4"/><path d="M5 11h9a5 5 0 010 10h-3"/></svg></button>
           <button type="button" class="btn icon" id="redo" aria-label="Wiederholen" title="Wiederholen (Strg+Y)" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 7l4 4-4 4"/><path d="M19 11h-9a5 5 0 000 10h3"/></svg></button>
-          <button type="button" class="btn" id="clearAll" title="Alles Gemalte entfernen, das Bild bleibt">Zeichnung leeren</button>
+          <button type="button" class="btn" id="clearAll" title="Alle Kronkorken vom Raster entfernen">Alles leeren</button>
         </div>
         <div class="brush"><span>Pinsel</span>
           <div class="seg four" role="group" aria-label="Pinselgröße in Flaschen">
@@ -276,13 +271,13 @@ var $=function(id){return document.getElementById(id)};
 var qsa=function(s){return Array.prototype.slice.call(document.querySelectorAll(s));};
 var clamp=function(v,a,b){return Math.max(a,Math.min(b,v))};
 var TAU=Math.PI*2;
-var EMPTY=255, MAXN=26, MAXC=16;
+var EMPTY=255, MAXN=26, MAXC=24;
 var DEFAULT_PALETTE=['#1f1b24','#ff8a00','#ffe033','#2e9e3f','#7a3fb0','#f2f2ee','#d62f2f','#2a6fdb'];
 var EXTRA_COLORS=['#e8a0bf','#8b5a2b','#00a6a6','#9aa0a6','#ff5d8f','#9be15d','#4c6ef5','#c0392b'];
 
-var state={type:'20',nx:7,ny:7,orient:'quer',L:40,W:30,fit:'cover',zoom:100,px:.5,py:.5,k:5,numbers:false,labels:true,sel:{x:0,y:0},
+var state={type:'20',nx:7,ny:7,orient:'quer',L:40,W:30,fit:'cover',zoom:100,px:.5,py:.5,k:5,detail:.7,numbers:false,labels:true,sel:{x:0,y:0},
   useImage:true,tool:'none',brush:1,color:1};
-var src=null, img=null, model=null, paint=null, palRefs=[], stroke=null, legSig='', legRows=[];
+var src=null, model=null, paint=null, palRefs=[], stroke=null, legSig='', legRows=[];
 var cv=$('cv'), ctx=cv.getContext('2d');
 var view={S:1,M:0};
 
@@ -501,9 +496,49 @@ function kmeans(cells,N,k){
   return {palette:palette,assign:assign};
 }
 
-/* ---------- Bildergebnis  ---------- */
+/* ---------- Bildergebnis: Palette bilden, je Flasche die auffälligste Farbe wählen ---------- */
+function nearestIdx(rgbs,r,g,b){
+  var best=0, bd=Infinity, j, dr, dg, db, dd;
+  for(j=0;j<rgbs.length;j++){
+    dr=r-rgbs[j][0]; dg=g-rgbs[j][1]; db=b-rgbs[j][2];
+    dd=2*dr*dr+4*dg*dg+3*db*db;
+    if(dd<bd){bd=dd; best=j;}
+  }
+  return best;
+}
+/* d: RGBA-Pixel, W x H, jede Flasche deckt F x F Pixel ab.
+   Die Mittelung über eine Flasche würde schmale Merkmale (Augen, Mund) mit dem Hintergrund
+   vermischen. Darum zählt jede Flasche die Pixel je Palettenfarbe, seltene Farben zählen
+   dabei stärker (detail 0 = reine Mehrheit, 1 = jede Farbe gleich stark). */
+function quantize(d,W,H,gx,gy,F,k,detail){
+  var Pn=W*H, step=Math.max(1,Math.floor(Pn/20000)), i, n=0;
+  while(step>1&&W%step===0)step++;
+  var pts=new Float32Array(Math.ceil(Pn/step)*3);
+  for(i=0;i<Pn;i+=step){pts[n*3]=d[i*4]; pts[n*3+1]=d[i*4+1]; pts[n*3+2]=d[i*4+2]; n++;}
+  var q=kmeans(pts,n,k), pal=q.palette, K=pal.length, rgbs=pal.map(rgbOf);
+  var cls=new Uint8Array(Pn), glob=new Float64Array(K), kk;
+  for(i=0;i<Pn;i++){cls[i]=nearestIdx(rgbs,d[i*4],d[i*4+1],d[i*4+2]); glob[cls[i]]++;}
+  var w=new Float64Array(K);
+  for(kk=0;kk<K;kk++)w[kk]=Math.pow(1/Math.max(.02,glob[kk]/Pn),detail);
+  var as=new Uint8Array(gx*gy), cnt=new Float64Array(K), used=new Uint8Array(K), bx, by, x, y, o, best, bs, sc;
+  for(by=0;by<gy;by++)for(bx=0;bx<gx;bx++){
+    cnt.fill(0);
+    for(y=0;y<F;y++){
+      o=(by*F+y)*W+bx*F;
+      for(x=0;x<F;x++)cnt[cls[o+x]]++;
+    }
+    best=0; bs=-1;
+    for(kk=0;kk<K;kk++){sc=cnt[kk]*w[kk]; if(sc>bs){bs=sc; best=kk;}}
+    as[by*gx+bx]=best; used[best]=1;
+  }
+  /* ungenutzte Farben aus der Palette nehmen */
+  var remap=new Uint8Array(K), np=[];
+  for(kk=0;kk<K;kk++)if(used[kk]){remap[kk]=np.length; np.push(pal[kk]);}
+  for(i=0;i<as.length;i++)as[i]=remap[as[i]];
+  return {palette:np,as:as};
+}
 function computeImage(){
-  var g=geom(), F=6;
+  var g=geom(), F=clamp(Math.round(200/Math.max(g.gx,g.gy)),4,10);
   var wc=document.createElement('canvas'); wc.width=g.gx*F; wc.height=g.gy*F;
   var c=wc.getContext('2d',{willReadFrequently:true});
   c.fillStyle='rgb('+src.edge.map(Math.round).join(',')+')'; c.fillRect(0,0,wc.width,wc.height);
@@ -512,36 +547,22 @@ function computeImage(){
   var p=placement(g.physW,g.physH);
   c.drawImage(src.canvas,p.x,p.y,p.dw,p.dh);
   var d=c.getImageData(0,0,wc.width,wc.height).data;
-  var N=g.gx*g.gy, cells=new Float32Array(N*3), bx, by, x, y, o;
-  for(by=0;by<g.gy;by++){
-    for(bx=0;bx<g.gx;bx++){
-      var r=0,gg=0,b=0;
-      for(y=0;y<F;y++){
-        o=((by*F+y)*wc.width+bx*F)*4;
-        for(x=0;x<F;x++){r+=d[o]; gg+=d[o+1]; b+=d[o+2]; o+=4;}
-      }
-      var i=(by*g.gx+bx)*3, area=F*F;
-      cells[i]=r/area; cells[i+1]=gg/area; cells[i+2]=b/area;
-    }
-  }
-  var q=kmeans(cells,N,state.k);
-  return {palette:q.palette,as:q.assign};
+  return quantize(d,wc.width,wc.height,g.gx,g.gy,F,state.k,state.detail);
 }
 
-/* ---------- Zeichnung  ---------- */
+/* ---------- Raster: jede Flasche hat genau einen Farbwert ---------- */
 
 function newPaint(g){
   var Mw=MAXN*g.cols, Mh=MAXN*g.rows;
   return {palette:DEFAULT_PALETTE.slice(),cols:g.cols,rows:g.rows,gx:g.gx,gy:g.gy,Mw:Mw,Mh:Mh,
-          a:new Uint8Array(Mw*Mh).fill(EMPTY),hist:[],redo:[]};
+          a:new Uint8Array(Mw*Mh).fill(EMPTY),hist:[],redo:[],dirty:false};
 }
 function syncPaint(){
   var g=geom(), x, y;
   if(!paint){paint=newPaint(g); return;}
   if(paint.cols===g.cols&&paint.rows===g.rows){paint.gx=g.gx; paint.gy=g.gy; return;}
-   var old=paint, np=newPaint(g);
-  np.palette=old.palette; np.hist=old.hist; np.redo=old.redo;
-  np.hist=[]; np.redo=[];
+  var old=paint, np=newPaint(g);
+  np.palette=old.palette; np.dirty=old.dirty;
   for(y=0;y<g.gy;y++){
     var sy=Math.min(old.gy-1,Math.floor((y+.5)*old.gy/g.gy));
     for(x=0;x<g.gx;x++){
@@ -551,26 +572,38 @@ function syncPaint(){
   }
   paint=np;
 }
+/* Rechnet das Bild in Flaschenpunkte um und schreibt sie ins Raster.
+   Wurde schon von Hand etwas geändert, geht der alte Stand vorher in den Verlauf (Strg+Z). */
+function convertImage(){
+  if(!src||!paint)return;
+  var g=geom(), res=computeImage(), x, y;
+  if(paint.dirty)pushHist(snapshot());
+  paint.a.fill(EMPTY);
+  for(y=0;y<g.gy;y++)for(x=0;x<g.gx;x++)paint.a[y*paint.Mw+x]=res.as[y*g.gx+x];
+  paint.palette=res.palette.slice();
+  paint.dirty=false;
+  state.color=Math.min(state.color,paint.palette.length-1);
+}
 function buildModel(){
-  var g=geom(), a=paint.a, Mw=paint.Mw, ia=img?img.as:null, gx=g.gx;
-  var base=img?img.palette:[], N=base.length;
-  var palette=base.concat(paint.palette);
-  var counts=palette.map(function(){return 0;}), empty=0, x, y, v, i;
-  function at(x,y){var o=a[y*Mw+x]; if(o!==EMPTY)return N+o; return ia?ia[y*gx+x]:EMPTY;}
-  for(y=0;y<g.gy;y++)for(x=0;x<g.gx;x++){v=at(x,y); if(v===EMPTY)empty++; else counts[v]++;}
-  var num=[], n=0;
-  for(i=0;i<palette.length;i++)num.push(counts[i]>0?++n:0);
-  return {g:g,palette:palette,counts:counts,empty:empty,num:num,N:N,at:at};
+  var g=geom(), a=paint.a, Mw=paint.Mw, palette=paint.palette.slice();
+  var counts=palette.map(function(){return 0;}), empty=0, num=[], x, y, v;
+  for(y=0;y<g.gy;y++)for(x=0;x<g.gx;x++){
+    v=a[y*Mw+x];
+    if(v===EMPTY||v>=palette.length)empty++; else counts[v]++;
+  }
+  palette.forEach(function(p,i){num.push(i+1);});
+  function at(x,y){var v=a[y*Mw+x]; return v>=palette.length?EMPTY:v;}
+  return {g:g,palette:palette,counts:counts,empty:empty,num:num,at:at};
 }
 function inside(c){return c.x>=0&&c.y>=0&&c.x<paint.gx&&c.y<paint.gy;}
 
-function snapshot(){return {a:paint.a.slice(),p:paint.palette.slice()};}
+function snapshot(){return {a:paint.a.slice(),p:paint.palette.slice(),d:paint.dirty};}
 function pushHist(s){
   paint.hist.push(s); if(paint.hist.length>60)paint.hist.shift();
   paint.redo.length=0; updateUndo();
 }
 function restore(s){
-  paint.a=s.a; paint.palette=s.p;
+  paint.a=s.a; paint.palette=s.p; paint.dirty=s.d;
   state.color=Math.min(state.color,paint.palette.length-1);
   renderPalette();
 }
@@ -608,31 +641,32 @@ function line(x0,y0,x1,y1,v){
   return ch;
 }
 function floodFill(sx,sy,v){
-  var gx=paint.gx, gy=paint.gy, Mw=paint.Mw, a=paint.a, at=model.at;
+  var gx=paint.gx, gy=paint.gy, Mw=paint.Mw, a=paint.a;
   if(sx<0||sy<0||sx>=gx||sy>=gy)return false;
-  var t=at(sx,sy), nv=v===EMPTY?EMPTY:model.N+v;
-  if(t===nv)return false;
-  var seen=new Uint8Array(gx*gy), stack=[sx,sy], x, y, i, ch=false;
+  var t=a[sy*Mw+sx];
+  if(t===v)return false;
+  var seen=new Uint8Array(gx*gy), stack=[sx,sy], x, y, i;
   while(stack.length){
     y=stack.pop(); x=stack.pop(); i=y*gx+x;
     if(seen[i])continue;
     seen[i]=1;
-    if(at(x,y)!==t)continue;
-    if(a[y*Mw+x]!==v){a[y*Mw+x]=v; ch=true;}
+    if(a[y*Mw+x]!==t)continue;
+    a[y*Mw+x]=v;
     if(x>0&&!seen[i-1])stack.push(x-1,y);
     if(x<gx-1&&!seen[i+1])stack.push(x+1,y);
     if(y>0&&!seen[i-gx])stack.push(x,y-1);
     if(y<gy-1&&!seen[i+gx])stack.push(x,y+1);
   }
-  return ch;
+  return true;
 }
 function applyStroke(from,to){
-  if(line(from.x,from.y,to.x,to.y,stroke.v)&&!stroke.changed){
-    stroke.changed=true; pushHist(stroke.snap);
+  if(line(from.x,from.y,to.x,to.y,stroke.v)){
+    if(!stroke.changed){stroke.changed=true; pushHist(stroke.snap);}
+    paint.dirty=true;
   }
 }
 
-/* ---------- Malfarben ---------- */
+/* ---------- Farben ---------- */
 function isPaint(){return state.tool!=='move'&&state.tool!=='none';}
 function setTool(t){
   state.tool=t;
@@ -646,21 +680,7 @@ function selectColor(i){
   if(state.tool==='eraser'||state.tool==='pick'||state.tool==='move')setTool('pen');
   refreshPalette();
 }
-function adoptHex(hex){
-  var h=hex.toLowerCase(), i=-1, k;
-  for(k=0;k<paint.palette.length;k++){if(paint.palette[k].toLowerCase()===h){i=k; break;}}
-  if(i<0){
-    if(paint.palette.length<MAXC){paint.palette.push(hex); i=paint.palette.length-1; renderPalette();}
-    else{
-      var best=Infinity, r=parseInt(h.substr(1,2),16), g=parseInt(h.substr(3,2),16), b=parseInt(h.substr(5,2),16);
-      paint.palette.forEach(function(p,j){
-        var dr=r-parseInt(p.substr(1,2),16), dg=g-parseInt(p.substr(3,2),16), db=b-parseInt(p.substr(5,2),16);
-        var d=dr*dr+dg*dg+db*db; if(d<best){best=d; i=j;}
-      });
-    }
-  }
-  selectColor(i);
-}
+function rgbOf(h){return [parseInt(h.substr(1,2),16),parseInt(h.substr(3,2),16),parseInt(h.substr(5,2),16)];}
 function refreshPalette(){
   if(!paint)return;
   paint.palette.forEach(function(hex,j){
@@ -676,13 +696,13 @@ function renderPalette(){
   strip.innerHTML=''; palRefs=[];
   paint.palette.forEach(function(hex,j){
     var sw=document.createElement('button'); sw.type='button'; sw.className='sw'; sw.setAttribute('role','radio');
-    sw.setAttribute('aria-label','Malfarbe '+(j+1)); sw.title='Malfarbe '+(j+1)+(j<9?' (Taste '+(j+1)+')':'');
+    sw.setAttribute('aria-label','Farbe '+(j+1)); sw.title='Farbe '+(j+1)+(j<9?' (Taste '+(j+1)+')':'');
     sw.addEventListener('click',function(){selectColor(j);});
     strip.appendChild(sw); palRefs.push(sw);
   });
   if(paint.palette.length<MAXC){
     var add=document.createElement('button'); add.type='button'; add.className='sw add'; add.textContent='+';
-    add.setAttribute('aria-label','Neue Malfarbe hinzufügen'); add.title='Neue Malfarbe hinzufügen';
+    add.setAttribute('aria-label','Neue Farbe hinzufügen'); add.title='Neue Farbe hinzufügen';
     add.addEventListener('click',addColor);
     strip.appendChild(add);
   }
@@ -696,17 +716,28 @@ function addColor(){
   if(state.tool==='eraser'||state.tool==='pick'||state.tool==='move')setTool('pen');
   renderPalette(); schedule(false);
 }
+/* Entfernt die gewählte Farbe. Ihre Flaschen gehen in der ähnlichsten Farbe auf. */
 function removeColor(){
   if(!paint||paint.palette.length<=1)return;
-  var i=state.color, a=paint.a, k, v;
+  var i=state.color, pal=paint.palette, me=rgbOf(pal[i]), best=-1, bd=Infinity, k, v, d, c;
+  for(k=0;k<pal.length;k++){
+    if(k===i)continue;
+    c=rgbOf(pal[k]);
+    d=2*Math.pow(c[0]-me[0],2)+4*Math.pow(c[1]-me[1],2)+3*Math.pow(c[2]-me[2],2);
+    if(d<bd){bd=d; best=k;}
+  }
   pushHist(snapshot());
+  var a=paint.a;
   for(k=0;k<a.length;k++){
     v=a[k];
     if(v===EMPTY)continue;
-    if(v===i)a[k]=EMPTY; else if(v>i)a[k]=v-1;
+    if(v===i)v=best;
+    if(v>i)v--;
+    a[k]=v;
   }
-  paint.palette.splice(i,1);
-  state.color=Math.min(i,paint.palette.length-1);
+  pal.splice(i,1);
+  paint.dirty=true;
+  state.color=Math.min(i,pal.length-1);
   renderPalette(); schedule(false);
 }
 
@@ -800,7 +831,7 @@ function renderStats(){
 function renderLegend(){
   var el=$('legend'), total=model.g.gx*model.g.gy, used=[];
   model.counts.forEach(function(c,i){if(c>0)used.push(i);});
-  var sig=model.N+':'+used.join(',');
+  var sig=used.join(',');
   if(sig!==legSig){
     legSig=sig; legRows=[]; el.innerHTML='';
     used.forEach(function(i){
@@ -812,12 +843,10 @@ function renderLegend(){
       var bar=document.createElement('div'); bar.className='bar'; var fill=document.createElement('i'); bar.appendChild(fill);
       var cnt=document.createElement('span'); cnt.className='cnt';
       inp.addEventListener('input',function(){
-        if(i<model.N)img.palette[i]=inp.value; else paint.palette[i-model.N]=inp.value;
+        paint.palette[i]=inp.value; paint.dirty=true;
         refreshPalette(); schedule(false);
       });
-      nr.addEventListener('click',function(){
-        if(i>=model.N)selectColor(i-model.N); else adoptHex(model.palette[i]);
-      });
+      nr.addEventListener('click',function(){selectColor(i);});
       row.appendChild(inp); row.appendChild(nr); row.appendChild(bar); row.appendChild(cnt);
       el.appendChild(row);
       legRows.push({i:i,inp:inp,fill:fill,cnt:cnt});
@@ -863,17 +892,18 @@ function drawThumb(){
   t.width=160; t.height=Math.max(1,Math.round(160*src.h/src.w));
   tx.drawImage(src.canvas,0,0,t.width,t.height);
 }
-var raf=0, needFull=false;
-function schedule(full){
-  needFull=needFull||full;
+/* mode: false = nur neu zeichnen, 'grid' = Raster hat sich geändert, 'image' = Bild neu umrechnen */
+var raf=0, needMode=false;
+function schedule(mode){
+  if(mode==='image')needMode='image'; else if(mode&&needMode!=='image')needMode='grid';
   if(raf)return;
   raf=requestAnimationFrame(function(){
     raf=0;
-    if(needFull){
-      needFull=false;
+    if(needMode){
+      var m=needMode; needMode=false;
       syncPaint();
-      img=state.useImage?computeImage():null;
-      if(state.useImage)drawThumb();
+      if(state.useImage&&src&&(m==='image'||!paint.dirty))convertImage();
+      if(state.useImage&&src)drawThumb();
       renderPalette(); updateUndo();
     }
     model=buildModel();
@@ -886,12 +916,13 @@ function schedule(full){
 function updateImgUI(){
   $('imgCtl').hidden=!state.useImage;
   $('kField').hidden=!state.useImage;
+  $('dField').hidden=!state.useImage;
   $('noImg').setAttribute('aria-pressed',state.useImage?'false':'true');
 }
 
 /* ---------- Eingaben ---------- */
 function setCount(id,v){
-  v=clamp(Math.round(v)||1,1,MAXN); state[id]=v; $(id).value=v; schedule(true);
+  v=clamp(Math.round(v)||1,1,MAXN); state[id]=v; $(id).value=v; schedule('grid');
 }
 qsa('[data-step]').forEach(function(b){
   b.addEventListener('click',function(){setCount(b.dataset.step,state[b.dataset.step]+(+b.dataset.d));});
@@ -899,14 +930,14 @@ qsa('[data-step]').forEach(function(b){
 ['nx','ny'].forEach(function(id){
   $(id).addEventListener('input',function(){
     var v=parseInt($(id).value,10); if(isNaN(v))return;
-    state[id]=clamp(v,1,MAXN); schedule(true);
+    state[id]=clamp(v,1,MAXN); schedule('grid');
   });
   $(id).addEventListener('change',function(){setCount(id,parseInt($(id).value,10));});
 });
 ['L','W'].forEach(function(id){
   $(id).addEventListener('input',function(){
     var v=parseFloat($(id).value); if(isNaN(v)||v<10)return;
-    state[id]=clamp(v,10,100); schedule(true);
+    state[id]=clamp(v,10,100); schedule('grid');
   });
 });
 function bindSeg(attr,key){
@@ -916,7 +947,7 @@ function bindSeg(attr,key){
       qsa('['+attr+']').forEach(function(o){
         o.setAttribute('aria-pressed',o===b?'true':'false');
       });
-      schedule(true);
+      schedule('grid');
     });
   });
 }
@@ -935,13 +966,14 @@ function bindRange(id,key,scale,fmt,full){
   el.addEventListener('input',function(){
     state[key]=(+el.value)/scale;
     $(id+'O').textContent=fmt(+el.value);
-    schedule(full);
+    schedule(full?'image':false);
   });
 }
 bindRange('zoom','zoom',1,function(v){return v+' %';},true);
 bindRange('px','px',100,function(v){return String(v);},true);
 bindRange('py','py',100,function(v){return String(v);},true);
 bindRange('k','k',1,function(v){return String(v);},true);
+bindRange('detail','detail',100,function(v){return v+' %';},true);
 $('numbers').addEventListener('change',function(e){state.numbers=e.target.checked; schedule(false);});
 $('labels').addEventListener('change',function(e){state.labels=e.target.checked; schedule(false);});
 
@@ -951,7 +983,8 @@ function syncImageControls(){
   $('py').value=Math.round(state.py*100); $('pyO').textContent=String(Math.round(state.py*100));
 }
 function resetPlacement(){state.zoom=100; state.px=.5; state.py=.5; syncImageControls();}
-$('resetImg').addEventListener('click',function(){resetPlacement(); schedule(true);});
+$('resetImg').addEventListener('click',function(){resetPlacement(); schedule('image');});
+$('reconv').addEventListener('click',function(){schedule('image');});
 
 function markSample(name){
   qsa('[data-sample]').forEach(function(b){
@@ -966,11 +999,18 @@ qsa('[data-sample]').forEach(function(b){
     }
     state.k=b.dataset.sample==='kuerbis3'?6:5; $('k').value=state.k; $('kO').textContent=String(state.k);
     state.useImage=true; updateImgUI();
-    $('fileErr').hidden=true; markSample(b.dataset.sample); resetPlacement(); schedule(true);
+    $('fileErr').hidden=true; markSample(b.dataset.sample); resetPlacement(); schedule('image');
   });
 });
 $('noImg').addEventListener('click',function(){
-  state.useImage=false; markSample(''); updateImgUI(); schedule(true);
+  state.useImage=false; markSample(''); updateImgUI();
+  if(paint){
+    if(paint.a.some(function(v){return v!==EMPTY;}))pushHist(snapshot());
+    paint.a.fill(EMPTY); paint.palette=DEFAULT_PALETTE.slice(); paint.dirty=false;
+    state.color=Math.min(state.color,paint.palette.length-1);
+    renderPalette();
+  }
+  schedule(false);
 });
 $('file').addEventListener('change',function(e){
   var f=e.target.files&&e.target.files[0]; if(!f)return;
@@ -979,7 +1019,7 @@ $('file').addEventListener('change',function(e){
     try{setSource(im,im.naturalWidth,im.naturalHeight);}catch(err){$('fileErr').hidden=false; URL.revokeObjectURL(url); return;}
     URL.revokeObjectURL(url);
     state.useImage=true; updateImgUI();
-    $('fileErr').hidden=true; markSample(''); resetPlacement(); schedule(true);
+    $('fileErr').hidden=true; markSample(''); resetPlacement(); schedule('image');
   };
   im.onerror=function(){URL.revokeObjectURL(url); $('fileErr').hidden=false;};
   im.src=url;
@@ -999,11 +1039,11 @@ $('redo').addEventListener('click',redo);
 $('delColor').addEventListener('click',removeColor);
 $('clearAll').addEventListener('click',function(){
   if(!paint)return;
-  pushHist(snapshot()); paint.a.fill(EMPTY); schedule(false);
+  pushHist(snapshot()); paint.a.fill(EMPTY); paint.dirty=true; schedule(false);
 });
 $('curColor').addEventListener('input',function(e){
   if(!paint)return;
-  paint.palette[state.color]=e.target.value; refreshPalette(); schedule(false);
+  paint.palette[state.color]=e.target.value; paint.dirty=true; refreshPalette(); schedule(false);
 });
 document.addEventListener('keydown',function(e){
   if(!paint)return;
@@ -1045,15 +1085,13 @@ cv.addEventListener('pointerdown',function(e){
     if(tool==='pick'){
       var pi=inside(c)?model.at(c.x,c.y):EMPTY;
       if(pi!==EMPTY){
-        if(pi>=model.N){state.color=pi-model.N; setTool('pen'); refreshPalette();}
-        else{adoptHex(model.palette[pi]);}
-        setTool('pen');
+        state.color=pi; setTool('pen'); refreshPalette();
       }
       return;
     }
     if(tool==='fill'){
       var s=snapshot();
-      if(floodFill(c.x,c.y,v))pushHist(s);
+      if(floodFill(c.x,c.y,v)){pushHist(s); paint.dirty=true;}
       setSelFromCell(c); schedule(false);
       return;
     }
@@ -1087,7 +1125,7 @@ cv.addEventListener('pointermove',function(e){
   var g=model.g, p=placement(g.physW,g.physH);
   state.px=clamp(drag.px+dx/view.S/p.dw,0,1);
   state.py=clamp(drag.py+dy/view.S/p.dh,0,1);
-  syncImageControls(); schedule(true);
+  syncImageControls(); schedule('image');
 });
 function endDrag(e){
   if(stroke){
@@ -1125,11 +1163,11 @@ if(document.fonts&&document.fonts.ready)document.fonts.ready.then(function(){sch
 /* ---------- Start ---------- */
 var first=makeSample('kuerbis2'); setSource(first,first.width,first.height);
 setTool('none'); updateImgUI();
-schedule(true);
+schedule('grid');
 })();
 </script>
 
-</body>
-</html>
 
+
+</body></html>
 </body></html>
